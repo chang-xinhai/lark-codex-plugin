@@ -1,0 +1,39 @@
+{
+  "name": "lark",
+  "version": "1.0.51+official.33e459a4de86",
+  "description": "Codex plugin wrapper for official Lark/Feishu lark-cli skills.",
+  "author": {
+    "name": "chang-xinhai"
+  },
+  "homepage": "https://github.com/chang-xinhai/lark-codex-plugin",
+  "repository": "https://github.com/chang-xinhai/lark-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "lark",
+    "feishu",
+    "codex",
+    "lark-cli",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lark / Feishu",
+    "shortDescription": "Calendar, Docs, Drive, Base, IM, Mail, Tasks, meetings, and approvals through lark-cli.",
+    "longDescription": "A Codex plugin that bundles the official Lark/Feishu skills for lark-cli. It keeps each product area's specialist workflow while exposing one plugin entry point for daily workspace automation.",
+    "developerName": "chang-xinhai",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Summarize today's Lark calendar, tasks, and meeting notes.",
+      "Find Lark docs and Base records for a project.",
+      "Draft a Lark message or email for review."
+    ],
+    "brandColor": "#3370FF",
+    "composerIcon": "./assets/lark-icon.png",
+    "logo": "./assets/lark-logo.png"
+  }
+}
