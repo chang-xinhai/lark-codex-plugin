@@ -215,6 +215,8 @@ lark-cli im +messages-send --chat-id oc_xxx --markdown $'## Test\n\nhello' --dry
 | `share_user` | `{"user_id":"ou_xxx"}` |
 | `interactive` | Card JSON (see Feishu interactive card documentation) |
 
+`interactive` cards support callback events (`card.action.trigger`) — see [`lark-im-card-action-reply.md`](lark-im-card-action-reply.md).
+
 ## Return Value
 
 ```json
