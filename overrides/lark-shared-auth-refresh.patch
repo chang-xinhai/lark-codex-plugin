@@ -1,0 +1,77 @@
+diff --git a/plugins/lark/skills/lark-shared/SKILL.md b/plugins/lark/skills/lark-shared/SKILL.md
+index e78ddd496bdac5dfea80adc4b208b95253efc00b..46acf82ec99c24f94c54a89c9eb2f577d361be46 100644
+--- a/plugins/lark/skills/lark-shared/SKILL.md
++++ b/plugins/lark/skills/lark-shared/SKILL.md
+@@ -4 +4 @@ version: 1.0.0
+-description: "Use for lark-cli setup/auth tasks: auth login/status/logout, user vs bot identity, business-domain permissions (--domain, including all/docs/drive), missing scopes, revoking authorization, or handling _notice JSON."
++description: "Use for lark-cli setup/auth tasks: first-time app configuration versus existing-app user reauthorization, expired refresh tokens, auth login/status/logout, user vs bot identity, business-domain permissions (--domain, including all/docs/drive), missing scopes, revoking authorization, or handling _notice JSON."
+@@ -13 +13 @@ description: "Use for lark-cli setup/auth tasks: auth login/status/logout, user
+-首次使用需运行 `lark-cli config init` 完成应用配置。
++仅当目标 profile 尚未绑定应用配置时，运行 `lark-cli config init`。refresh token 过期不代表应用配置丢失；如果 `lark-cli profile list` 或 `lark-cli --profile <name> config show` 仍显示原 `appId`，**禁止**重新执行 `config init --new`，应走下方“已有应用重新授权”流程。
+@@ -25,0 +26,43 @@ lark-cli config init --new
++### 先区分配置、刷新与重新授权
++
++不要把“创建/配置应用”“自动刷新 token”“用户重新授权”混为一谈。处理认证问题时，先运行：
++
++```bash
++lark-cli profile list
++lark-cli --profile <name> auth status --json --verify
++```
++
++根据结果选择且只选择一条流程：
++
++| 状态 | 含义 | 操作 |
++|---|---|---|
++| profile 不存在，或没有 `appId` / `appSecret` | 首次配置应用 | 运行 `config init --new`；组织应用可能需要管理员审批应用 scopes |
++| `identities.user.verified == true`，包括可成功刷新后的 `needs_refresh` | refresh token 仍有效 | 继续调用 user API，让 CLI 自动刷新；不要重新登录，不要重新配置应用 |
++| profile 和 `appId` 存在，但 user 为 `missing` / `expired`，并提示 refresh token expired | 已有应用的用户 refresh token 过期 | 复用同一 profile 和原应用，只对已批准的最小 scopes 发起 user device-flow 重新授权 |
++| API 返回真正缺少的新 scope | 应用或用户缺少权限 | 只请求错误中列出的最小 scope；如果应用后台尚未批准该 scope，才需要管理员处理 |
++
++#### 已有应用的 refresh token 过期
++
++这是用户重新登录，不是创建新应用。必须保留原 profile 与 `appId`：
++
++1. 从 `auth status` 的 `identities.user.scope` 和当前任务中确定已批准且确实需要的最小 scopes。
++2. 使用同一 profile 发起 split-flow：
++
++   ```bash
++   lark-cli --profile <name> auth login \
++     --scope "<already-approved-scope-1> <already-approved-scope-2>" \
++     --no-wait --json
++   ```
++
++3. 用户确认授权后，使用同一 profile 完成登录：
++
++   ```bash
++   lark-cli --profile <name> auth login --device-code <device_code>
++   ```
++
++4. 再运行 `lark-cli --profile <name> auth status --json --verify`，确认 `identities.user.status == "ready"`、`tokenStatus == "valid"`、`verified == true`，并向用户报告实际 user identity。
++
++**管理员审批边界**：组织管理员批准的是应用可使用的 scopes；组织用户随后授权该已批准应用。refresh token 过期时，请求原来已批准的 scopes 通常只会重新签发 user/refresh token。若完成命令显示“本次新授予 scopes: （空）”，应明确告知用户没有新增权限。
++
++**禁止默认扩大权限**：除非用户明确要求首次获取全部权限并知晓可能触发管理员审批，否则不得用 `--domain all` 恢复过期 token。也不得为了恢复 token 而运行 `config init --new`。`--domain all` 可能把尚未批准的 scopes 带入授权页，导致不必要的管理员申请。
++
+@@ -32 +75 @@ lark-cli config init --new
+-| 获取全部权限 | `lark-cli auth login --domain all --no-wait --json` |
++| 首次获取全部权限（用户明确要求） | `lark-cli auth login --domain all --no-wait --json`；可能触发管理员审批 |
+@@ -34 +77,2 @@ lark-cli config init --new
+-| 指定单个 scope 授权 | `lark-cli auth login --scope "<scope>" --no-wait --json` |
++| 指定一个或多个最小 scope 授权 | `lark-cli auth login --scope "<scope-1> <scope-2>" --no-wait --json` |
++| 已有应用的 refresh token 过期 | 复用原 profile：`lark-cli --profile <name> auth login --scope "<already-approved-scopes>" --no-wait --json`；禁止默认 `--domain all` |
+@@ -94,2 +138,2 @@ lark-cli auth login --scope "<missing_scope>"   # 按具体 scope 授权（推
+-# 发起授权（立即返回 device_code 和 verification_url）
+-lark-cli auth login --scope "calendar:calendar:readonly" --no-wait --json
++# 发起授权（立即返回 device_code 和 verification_url）；多 profile 时必须指定目标 profile
++lark-cli --profile <name> auth login --scope "calendar:calendar:readonly" --no-wait --json
+@@ -103 +147 @@ lark-cli auth login --scope "calendar:calendar:readonly" --no-wait --json
+-lark-cli auth login --device-code <device_code>
++lark-cli --profile <name> auth login --device-code <device_code>
+@@ -110 +154 @@ lark-cli auth login --device-code <device_code>
+-1. 执行 `lark-cli auth login --scope "xxx" --no-wait --json`（必须加 `--no-wait --json`）
++1. 执行 `lark-cli --profile <name> auth login --scope "xxx" --no-wait --json`（必须加 `--no-wait --json`；若只有默认 profile，可省略 `--profile`）
+@@ -119 +163 @@ lark-cli auth login --device-code <device_code>
+-2. **由你（AI agent）亲自执行**：`lark-cli auth login --device-code <device_code>`
++2. **由你（AI agent）亲自执行**：`lark-cli --profile <name> auth login --device-code <device_code>`；必须与第一步使用同一 profile
+@@ -127,0 +172 @@ lark-cli auth login --device-code <device_code>
++- **不要用 `--domain all` 处理 refresh token 过期**：复用原 profile，并请求当前任务所需的已批准最小 scopes
