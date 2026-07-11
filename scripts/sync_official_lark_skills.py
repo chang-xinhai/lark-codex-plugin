@@ -13,6 +13,8 @@ from pathlib import Path
 
 
 DEFAULT_REPO = "https://github.com/larksuite/cli.git"
+DEFAULT_PLUGIN_ROOT = Path(__file__).resolve().parents[1] / "plugins" / "lark"
+OVERRIDES_DIR = Path(__file__).resolve().parents[1] / "overrides"
 
 
 def run(argv: list[str], cwd: Path | None = None) -> str:
@@ -25,7 +27,7 @@ def repo_root() -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--plugin-root", default=str(repo_root() / "plugins" / "lark"))
+    parser.add_argument("--plugin-root", default=str(DEFAULT_PLUGIN_ROOT))
     parser.add_argument("--source", choices=("github", "cli"), default="github")
     parser.add_argument("--official-repo", default=DEFAULT_REPO)
     parser.add_argument("--official-ref", default="main")
@@ -46,6 +48,47 @@ def copy_official_skills(source_skills: Path, plugin_root: Path) -> list[str]:
             shutil.copytree(child, destination / child.name)
             copied.append(child.name)
     return copied
+
+
+def verify_override_bases(patch: Path) -> None:
+    """Require every patched file to match the exact upstream blob in the patch."""
+    expected_blobs: dict[str, str] = {}
+    current_path: str | None = None
+
+    for line in patch.read_text(encoding="utf-8").splitlines():
+        if line.startswith("diff --git a/") and " b/" in line:
+            current_path = line.split(" b/", 1)[1]
+        elif current_path and line.startswith("index "):
+            expected_blobs[current_path] = line.split()[1].split("..", 1)[0]
+            current_path = None
+
+    if not expected_blobs:
+        raise RuntimeError(f"override has no indexed file bases: {patch}")
+
+    for relative_path, expected_blob in expected_blobs.items():
+        target = repo_root() / relative_path
+        if not target.is_file():
+            raise RuntimeError(f"override target does not exist: {relative_path}")
+        actual_blob = run(["git", "hash-object", str(target)], cwd=repo_root()).strip()
+        if actual_blob != expected_blob:
+            raise RuntimeError(
+                f"override base changed for {relative_path}: "
+                f"expected {expected_blob}, found {actual_blob}"
+            )
+
+
+def apply_local_overrides(plugin_root: Path) -> list[str]:
+    """Apply repository-owned patches after replacing the official skills tree."""
+    if plugin_root != DEFAULT_PLUGIN_ROOT.resolve() or not OVERRIDES_DIR.exists():
+        return []
+
+    applied: list[str] = []
+    for patch in sorted(OVERRIDES_DIR.glob("*.patch")):
+        verify_override_bases(patch)
+        run(["git", "apply", "--unidiff-zero", "--check", str(patch)], cwd=repo_root())
+        run(["git", "apply", "--unidiff-zero", str(patch)], cwd=repo_root())
+        applied.append(patch.name)
+    return applied
 
 
 def sync_from_github(args: argparse.Namespace, plugin_root: Path) -> dict[str, str | int | list[str]]:
@@ -161,11 +204,13 @@ def main() -> None:
         metadata = sync_from_github(args, plugin_root)
     else:
         metadata = sync_from_cli(plugin_root)
+    overrides = apply_local_overrides(plugin_root)
     update_manifest(plugin_root, metadata)
     write_sync_metadata(metadata)
     print(
         f"Synced {metadata['skill_count']} skills from {metadata['source']} "
-        f"({metadata['package_version']} {metadata['source_commit']})."
+        f"({metadata['package_version']} {metadata['source_commit']}); "
+        f"applied {len(overrides)} local override(s)."
     )
 
 

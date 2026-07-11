@@ -64,6 +64,32 @@ codex plugin add lark@xinhai-lark
 
 Start a new Codex thread after installation so the plugin skills are loaded.
 
+## Authentication Lifecycle
+
+The plugin distinguishes application setup from user-token maintenance:
+
+- **First-time application setup:** use `lark-cli config init --new` only when a
+  profile has no application configuration. Organization administrators may
+  need to approve the application's requested scopes.
+- **Normal token refresh:** when `auth status --verify` succeeds, continue using
+  the profile and let `lark-cli` refresh the user access token automatically.
+- **Expired refresh token:** keep the existing profile and application, then
+  reauthorize only the already-approved scopes needed for the task. Do not run
+  `config init --new`, and do not default to `--domain all`.
+
+For example:
+
+```bash
+lark-cli --profile <name> auth status --json --verify
+lark-cli --profile <name> auth login \
+  --scope "<already-approved-scope-1> <already-approved-scope-2>" \
+  --no-wait --json
+```
+
+This reissues the organization's user/refresh token for the same application.
+Requesting a new scope is a separate permission change and may require an
+administrator; reauthorizing previously approved scopes should not.
+
 ## Updating An Existing Install
 
 This repository can stay current through GitHub Actions, but Codex keeps an
@@ -88,8 +114,10 @@ python3 scripts/sync_official_lark_skills.py
 ```
 
 The script clones the official repo, copies `skills/lark-*`, preserves this
-plugin's `skills/lark` router, updates plugin version metadata, and refreshes
-third-party attribution files.
+plugin's `skills/lark` router, applies repository-owned patches from
+`overrides/`, updates plugin version metadata, and refreshes third-party
+attribution files. Override patches are checked before application so an
+upstream conflict fails visibly instead of silently dropping local guidance.
 
 The included GitHub Action runs on a schedule and can also be triggered
 manually from the Actions tab.
