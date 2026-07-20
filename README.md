@@ -103,6 +103,9 @@ codex plugin add lark@xinhai-lark
 
 Then start a new Codex thread.
 
+For automatic daily refreshes, use the ready-to-copy Codex automation prompt in
+[`AUTOMATION.md`](AUTOMATION.md).
+
 ## Keeping Up With Official Lark Skills
 
 This repository intentionally treats
