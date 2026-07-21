@@ -97,11 +97,13 @@ installed plugin cache locally. Existing users should refresh the Git
 marketplace and reinstall the plugin after upstream syncs:
 
 ```bash
-codex plugin marketplace upgrade xinhai-lark
-codex plugin add lark@xinhai-lark
+./scripts/update-plugin.sh
 ```
 
-Then start a new Codex thread.
+The updater registers the GitHub marketplace when needed, refreshes its snapshot,
+and reinstalls the current plugin version. Run the same command on each computer,
+then start a new Codex thread. GitHub Actions maintains the shared repository;
+each computer maintains its own local Codex plugin cache.
 
 For automatic daily refreshes, use the ready-to-copy Codex automation prompt in
 [`AUTOMATION.md`](AUTOMATION.md).
@@ -119,8 +121,9 @@ python3 scripts/sync_official_lark_skills.py
 The script clones the official repo, copies `skills/lark-*`, preserves this
 plugin's `skills/lark` router, applies repository-owned patches from
 `overrides/`, updates plugin version metadata, and refreshes third-party
-attribution files. Override patches are checked before application so an
-upstream conflict fails visibly instead of silently dropping local guidance.
+attribution files. Overrides use contextual patches: unrelated upstream edits
+merge automatically, while a real overlap fails visibly instead of silently
+dropping or misplacing local guidance.
 
 The included GitHub Action runs on a schedule and can also be triggered
 manually from the Actions tab.

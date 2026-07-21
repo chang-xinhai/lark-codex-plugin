@@ -50,43 +50,20 @@ def copy_official_skills(source_skills: Path, plugin_root: Path) -> list[str]:
     return copied
 
 
-def verify_override_bases(patch: Path) -> None:
-    """Require every patched file to match the exact upstream blob in the patch."""
-    expected_blobs: dict[str, str] = {}
-    current_path: str | None = None
-
-    for line in patch.read_text(encoding="utf-8").splitlines():
-        if line.startswith("diff --git a/") and " b/" in line:
-            current_path = line.split(" b/", 1)[1]
-        elif current_path and line.startswith("index "):
-            expected_blobs[current_path] = line.split()[1].split("..", 1)[0]
-            current_path = None
-
-    if not expected_blobs:
-        raise RuntimeError(f"override has no indexed file bases: {patch}")
-
-    for relative_path, expected_blob in expected_blobs.items():
-        target = repo_root() / relative_path
-        if not target.is_file():
-            raise RuntimeError(f"override target does not exist: {relative_path}")
-        actual_blob = run(["git", "hash-object", str(target)], cwd=repo_root()).strip()
-        if actual_blob != expected_blob:
-            raise RuntimeError(
-                f"override base changed for {relative_path}: "
-                f"expected {expected_blob}, found {actual_blob}"
-            )
-
-
 def apply_local_overrides(plugin_root: Path) -> list[str]:
-    """Apply repository-owned patches after replacing the official skills tree."""
+    """Apply repository-owned patches after replacing the official skills tree.
+
+    Patches deliberately use contextual hunks instead of pinning the complete
+    upstream blob. This lets unrelated upstream edits merge automatically while
+    ``git apply --check`` still stops on an actual overlap.
+    """
     if plugin_root != DEFAULT_PLUGIN_ROOT.resolve() or not OVERRIDES_DIR.exists():
         return []
 
     applied: list[str] = []
     for patch in sorted(OVERRIDES_DIR.glob("*.patch")):
-        verify_override_bases(patch)
-        run(["git", "apply", "--unidiff-zero", "--check", str(patch)], cwd=repo_root())
-        run(["git", "apply", "--unidiff-zero", str(patch)], cwd=repo_root())
+        run(["git", "apply", "--check", str(patch)], cwd=repo_root())
+        run(["git", "apply", str(patch)], cwd=repo_root())
         applied.append(patch.name)
     return applied
 
