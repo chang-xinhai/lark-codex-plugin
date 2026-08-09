@@ -1,5 +1,5 @@
 diff --git a/plugins/lark/skills/lark-shared/SKILL.md b/plugins/lark/skills/lark-shared/SKILL.md
-index 5b1c94e..f3e3e9d 100644
+index 527b84b..79ad0b1 100644
 --- a/plugins/lark/skills/lark-shared/SKILL.md
 +++ b/plugins/lark/skills/lark-shared/SKILL.md
 @@ -1,7 +1,7 @@
@@ -122,7 +122,7 @@ index 5b1c94e..f3e3e9d 100644
 @@ -125,6 +169,7 @@ lark-cli auth login --device-code <device_code>
  - **你必须亲自执行 `--device-code` 命令**，不要指示用户自行执行
  - **不要在同一轮中展示 URL 后立刻执行 `--device-code`**，这会导致用户看不到 URL
- - **禁止缓存 `verification_url` 或 `device_code`**：每次需要授权时，必须重新执行 `lark-cli auth login --no-wait --json` 生成新的链接。不要将授权链接和 device code 存入上下文供后续复用
+ - **禁止缓存 `verification_url` 或 `device_code`**：每次需要重新发起授权时，必须沿用所需的 `--scope`、`--domain` 或 `--recommend` 选择以及任何 `--exclude` 值，并附加 `--no-wait --json` 生成新的链接。不要复用已过期的授权链接或 device code
 +- **不要用 `--domain all` 处理 refresh token 过期**：复用原 profile，并请求当前任务所需的已批准最小 scopes
  
  ## 更新检查
