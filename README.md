@@ -119,11 +119,12 @@ python3 scripts/sync_official_lark_skills.py
 ```
 
 The script clones the official repo, copies `skills/lark-*`, preserves this
-plugin's `skills/lark` router, applies repository-owned patches from
+plugin's `skills/lark` router, applies repository-owned content from
 `overrides/`, updates plugin version metadata, and refreshes third-party
-attribution files. Overrides use contextual patches: unrelated upstream edits
-merge automatically, while a real overlap fails visibly instead of silently
-dropping or misplacing local guidance.
+attribution files. The auth-refresh override is a standalone reference with a
+small discovery hook, so upstream can reorganize unrelated guidance without
+breaking the sync. Any contextual patches still fail visibly on a real overlap
+instead of silently dropping or misplacing local guidance.
 
 The included GitHub Action runs on a schedule and can also be triggered
 manually from the Actions tab.

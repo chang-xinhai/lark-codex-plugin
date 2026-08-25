@@ -51,16 +51,66 @@ def copy_official_skills(source_skills: Path, plugin_root: Path) -> list[str]:
 
 
 def apply_local_overrides(plugin_root: Path) -> list[str]:
-    """Apply repository-owned patches after replacing the official skills tree.
+    """Apply repository-owned overrides after replacing the official skills tree.
 
-    Patches deliberately use contextual hunks instead of pinning the complete
-    upstream blob. This lets unrelated upstream edits merge automatically while
-    ``git apply --check`` still stops on an actual overlap.
+    The auth-refresh guidance is kept as a standalone reference and only adds a
+    small discovery hook to the upstream skill. This avoids a large contextual
+    patch breaking whenever upstream reorganizes otherwise unrelated content.
+    Any remaining patches deliberately use contextual hunks so an actual
+    semantic overlap still stops the sync.
     """
     if plugin_root != DEFAULT_PLUGIN_ROOT.resolve() or not OVERRIDES_DIR.exists():
         return []
 
     applied: list[str] = []
+
+    auth_refresh_override = OVERRIDES_DIR / "lark-shared-auth-refresh.md"
+    if auth_refresh_override.exists():
+        shared_skill = plugin_root / "skills" / "lark-shared"
+        shared_skill_file = shared_skill / "SKILL.md"
+        shared_reference = shared_skill / "references" / auth_refresh_override.name
+
+        lines = shared_skill_file.read_text(encoding="utf-8").splitlines(keepends=True)
+        frontmatter_boundaries = [index for index, line in enumerate(lines) if line.rstrip() == "---"]
+        if len(frontmatter_boundaries) < 2:
+            raise RuntimeError(f"Missing YAML frontmatter in {shared_skill_file}")
+
+        description_indexes = [
+            index
+            for index in range(frontmatter_boundaries[0] + 1, frontmatter_boundaries[1])
+            if lines[index].startswith("description:")
+        ]
+        if len(description_indexes) != 1:
+            raise RuntimeError(f"Expected one description in {shared_skill_file}")
+        lines[description_indexes[0]] = (
+            'description: "Use for lark-cli setup/auth tasks: first-time app configuration '
+            "versus existing-app user reauthorization, expired refresh tokens, auth "
+            "login/status/logout, user vs bot identity, business-domain permissions "
+            "(--domain, including all/docs/drive), missing scopes, revoking authorization, "
+            'or handling _notice JSON."\n'
+        )
+
+        refresh_trigger = (
+            "| refresh token 过期、已有应用重新授权、区分首次配置与重新登录 | "
+            "[`lark-shared-auth-refresh.md`](references/lark-shared-auth-refresh.md) |\n"
+        )
+        if refresh_trigger not in lines:
+            identity_rows = [
+                index
+                for index, line in enumerate(lines)
+                if line.startswith("|") and "lark-shared-identity-and-permissions.md" in line
+            ]
+            if len(identity_rows) != 1:
+                raise RuntimeError(
+                    f"Expected one identity-and-permissions trigger row in {shared_skill_file}"
+                )
+            lines.insert(identity_rows[0], refresh_trigger)
+
+        shared_skill_file.write_text("".join(lines), encoding="utf-8")
+        shared_reference.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(auth_refresh_override, shared_reference)
+        applied.append(auth_refresh_override.name)
+
     for patch in sorted(OVERRIDES_DIR.glob("*.patch")):
         run(["git", "apply", "--check", str(patch)], cwd=repo_root())
         run(["git", "apply", str(patch)], cwd=repo_root())
