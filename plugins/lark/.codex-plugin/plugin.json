@@ -1,6 +1,6 @@
 {
   "name": "lark",
-  "version": "1.0.96+official.65877b497a76",
+  "version": "1.0.96+official.ceace6d9349f",
   "description": "Codex plugin wrapper for official Lark/Feishu lark-cli skills.",
   "author": {
     "name": "chang-xinhai"
