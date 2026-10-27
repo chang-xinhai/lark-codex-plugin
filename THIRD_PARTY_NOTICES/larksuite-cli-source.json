@@ -2,7 +2,7 @@
   "source": "github",
   "source_repo": "https://github.com/larksuite/cli.git",
   "source_ref": "main",
-  "source_commit": "017b19a793ad71794a02887ede04757f3d82e10d",
+  "source_commit": "a92db8779c0959bc14beb69d82fb262123cfb79b",
   "package_version": "1.0.98",
   "skill_count": 28,
   "skills": [
@@ -35,5 +35,5 @@
     "lark-workflow-meeting-summary",
     "lark-workflow-standup-report"
   ],
-  "synced_at_utc": "2026-10-14T03:32:49+00:00"
+  "synced_at_utc": "2026-10-27T03:35:02+00:00"
 }
