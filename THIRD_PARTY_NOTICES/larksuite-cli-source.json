@@ -2,9 +2,9 @@
   "source": "github",
   "source_repo": "https://github.com/larksuite/cli.git",
   "source_ref": "main",
-  "source_commit": "05ac58ffa089fe7a171205ac1d1e97ee50196ec8",
+  "source_commit": "1bfdcc2c1a0ed0296ddb6349d251bdd75145bc5a",
   "package_version": "1.0.99",
-  "skill_count": 28,
+  "skill_count": 25,
   "skills": [
     "lark-approval",
     "lark-apps",
@@ -19,7 +19,6 @@
     "lark-mail",
     "lark-markdown",
     "lark-meeting",
-    "lark-minutes",
     "lark-note",
     "lark-okr",
     "lark-openapi-explorer",
@@ -28,12 +27,10 @@
     "lark-skill-maker",
     "lark-slides",
     "lark-task",
-    "lark-vc",
-    "lark-vc-agent",
     "lark-whiteboard",
     "lark-wiki",
     "lark-workflow-meeting-summary",
     "lark-workflow-standup-report"
   ],
-  "synced_at_utc": "2026-11-06T03:22:12+00:00"
+  "synced_at_utc": "2026-11-10T03:22:10+00:00"
 }
